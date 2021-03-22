@@ -1,0 +1,373 @@
+---
+title: "DS 807 Week 1 R Code"
+author: "Burcu Eke Rubini"
+output: html_document
+#runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+
+library(tidyverse)
+library(tidytext)
+library(wordcloud)
+library(wordcloud2)
+library(textdata)
+library(igraph)
+library(ggraph)
+library(widyr)
+```
+
+### Slide 12
+
+```{r}
+text = c("You may write me down in history","With your bitter, twisted lies,", "You may trod me in the very dirt", 
+"But still, like dust, I'll rise.")
+
+text_df=tibble(line=1:4, text=text)
+text_df
+```
+
+### Slide 15
+
+```{r}
+#libary(tidytext)
+
+text_tidy=text_df %>%
+  unnest_tokens(word, text)
+
+text_tidy
+```
+
+### Slide 16
+
+```{r}
+text_tidy %>%
+  count(word, sort=TRUE)
+```
+
+### Slide 17
+
+```{r}
+stop_words
+```
+
+### Slide 18
+
+```{r}
+text_tidy = text_tidy %>%
+  anti_join(stop_words)
+
+text_tidy %>%
+  count(word, sort=TRUE)
+```
+
+### Slide 20
+
+```{r}
+#read_csv in tidyverse package
+data=read_csv("https://unh.box.com/shared/static/lcferv1g1w8sijolr8xqbs94gml7ei6h.csv")
+```
+
+### Slide 21
+
+```{r}
+data
+```
+
+### Slide 22 
+
+```{r}
+data %>%
+  group_by(category_id) %>%
+  summarize(like_means=mean(likes))
+```
+
+### Slide 23
+
+```{r}
+data %>%
+  group_by(category_id) %>%
+  summarize(like_means=mean(title))
+```
+
+### Slide 24
+
+```{r}
+tidy_title = data %>%
+  unnest_tokens(word, title) 
+tidy_title
+```
+
+### Slide 25
+
+```{r}
+tidy_title %>%
+  count(word) %>%
+  arrange(desc(n))
+```
+
+### Slide 26
+
+```{r}
+tidy_title = tidy_title %>%
+  anti_join(stop_words) 
+
+tidy_title
+```
+
+### Slide 27
+
+```{r}
+tidy_title %>%
+  count(word) %>%
+  arrange(desc(n))
+```
+
+### Slide 28/29
+
+```{r}
+word_counts <- tidy_title %>% 
+  filter(category_id == 10) %>% 
+  count(word) %>% 
+  filter(n > 500)
+
+ggplot(word_counts, aes(x=word, y=n)) +
+  geom_col() +
+  coord_flip() +
+  ggtitle("Word Counts for Music Category")
+```
+
+### Slide 30-31
+
+```{r}
+word_counts <- tidy_title %>% 
+  filter(category_id == 10) %>% 
+  count(word) %>% 
+  filter(n > 500) %>%
+  mutate(word2 = fct_reorder(word, n))
+
+ggplot(word_counts, aes(x=word2, y=n)) +
+  geom_col() +
+  coord_flip() +
+  ggtitle("Word Counts for Music Category")
+```
+
+### Slide 32-33
+
+```{r}
+word_counts2 <- tidy_title %>%
+  count(word, category_id) %>%
+  group_by(category_id) %>%
+  top_n(10, n) %>%
+  ungroup() %>%
+  mutate(word2 = fct_reorder(word, n))
+
+ggplot(word_counts2, aes(x = word2, y = n, fill=category_id)) +
+  geom_col(show.legend=FALSE) +
+  facet_wrap(~category_id, scales = "free_y") +
+  coord_flip() +
+  ggtitle("YouTube Title Counts by Category")
+```
+
+### Slide 34-35
+
+```{r}
+#library(wordcloud)
+
+w_count = tidy_title %>%
+  count(word)
+
+wordcloud(word= w_count$word,
+          freq=w_count$n,
+          color="red",
+          max.words=50)
+```
+
+### Slide 36
+
+```{r}
+w_count2 = tidy_title %>%
+  filter(category_id == 28) %>%
+  count(word) %>%
+  mutate(w_count2 = fct_reorder(word, n))
+
+wordcloud(word= w_count2$word,
+          freq=w_count2$n,
+          color="red",
+          max.words=50,
+          scale=c(3,.5))
+
+w_count2=w_count2[1:150,]
+
+#wordcloud2(w_count2, color = "random-light" )
+```
+
+### Slide 37
+
+```{r}
+custom_stop_words <- tribble(
+  # Column names should match stop_words
+  ~word, ~lexicon,
+  "2017", "CUSTOM",
+  "2018", "CUSTOM",
+  "2", "CUSTOM"
+)
+
+stop_words2 <- stop_words %>% 
+  bind_rows(custom_stop_words)
+```
+
+### Slide 38
+
+```{r}
+
+w_count3=tidy_title %>%
+  filter(category_id == 28) %>%
+  anti_join(custom_stop_words) %>%
+  count(word, sort=TRUE) 
+  
+
+w_count3=w_count3[1:150,]
+
+#dev.new(width = 1000, height = 1000, unit = "px")
+wordcloud2(w_count3, color = "random-light" )
+```
+
+### Slide 41
+
+```{r}
+get_sentiments("bing")
+```
+
+### Slide 43
+
+```{r}
+#library(textdata)
+sentiment_title = tidy_title %>%
+  inner_join(get_sentiments("loughran"))
+
+sentiment_title %>%
+  count(sentiment)
+```
+
+### Slide 44
+
+```{r}
+sentiment_title %>%
+  count(word, sentiment) %>%
+  arrange(desc(n))
+  
+```
+
+### Slide 45
+
+```{r}
+sentiment_title2 = sentiment_title %>%
+  filter(sentiment %in% c("positive", "negative"))
+
+sent_count =  sentiment_title2 %>%
+  count(word, sentiment) %>%
+  group_by(sentiment) %>%
+  top_n(10, n) %>%
+  ungroup() %>%
+  mutate(word2=fct_reorder(word, n))
+```
+
+### Slide 46
+
+```{r}
+ggplot(sent_count, aes(x=word2, y=n, fill=sentiment)) +
+  geom_col(show.legend=FALSE)+
+  facet_wrap(~sentiment, scales="free")+
+  coord_flip()+
+  labs(title = "Sentiment Word Counts", x="Words")
+```
+
+### Slide 48
+    
+```{r}
+data2=data[,"title"]
+ngram_titles = data2 %>%
+  unnest_tokens(bigram, title, token="ngrams", n=2)
+
+ngram_titles
+```
+
+### Slide 49
+
+```{r}
+ngram_titles %>%
+  count(bigram, sort=TRUE)
+```
+
+### Slide 50
+
+```{r}
+filtered_titles = ngram_titles %>%
+  separate(bigram, c("word1", "word2"), sep=" ") %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word)
+
+filtered_titles
+```
+
+### Slide 51
+
+```{r}
+filtered_titles_united = filtered_titles %>%
+  unite(bigram, c("word1", "word2"), sep=" ") 
+
+filtered_titles_united %>%
+  count(bigram, sort=TRUE)
+```
+
+### Slide 52
+
+```{r warning=FALSE}
+#library(igraph)
+
+bigram_count=filtered_titles %>%
+  count(word1, word2, sort=TRUE)
+
+bigram_network = bigram_count %>%
+  filter( n > 150) %>%
+  graph_from_data_frame()
+
+bigram_network
+```
+
+### Slide 53
+
+```{r}
+#library(ggraph)
+set.seed(1234)
+
+ggraph(bigram_network, layout = "fr") +
+  geom_edge_link() +
+  geom_node_point() +
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1)
+```
+
+### Slide 54
+
+```{r warning=FALSE}
+#library(widyr)
+
+# Data Prep
+data.sm=data[, c("title", "category_id")]
+corr_words= data.sm %>%
+  filter(category_id == 28) %>%
+  mutate(section = row_number() %/% 10) %>%
+  filter(section > 0) %>%
+  unnest_tokens(word, title) %>%
+  filter(!word %in% stop_words$word)
+
+word_cors <- corr_words %>%
+  group_by(word) %>%
+  filter(n() >= 50) %>%
+  pairwise_cor(word, section, sort = TRUE)
+
+word_cors
+```
+
