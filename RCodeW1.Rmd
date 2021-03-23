@@ -88,7 +88,7 @@ data %>%
 ```{r}
 data %>%
   group_by(category_id) %>%
-  summarize(like_means=mean(title))
+  summarize(like_means=mean(title)) # this is in here to show mean makes no sense here
 ```
 
 ### Slide 24
@@ -237,7 +237,14 @@ wordcloud2(w_count3, color = "random-light" )
 ### Slide 41
 
 ```{r}
-get_sentiments("bing")
+get_sentiments("bing") #afinn -5 to 5, loughran, sentiment and 6 levels, nrc
+```
+
+```{r}
+#I've added this here
+get_sentiments("afinn")
+get_sentiments("loughran")
+get_sentiments("nrc")
 ```
 
 ### Slide 43
@@ -360,6 +367,22 @@ corr_words= data.sm %>%
   filter(category_id == 28) %>%
   mutate(section = row_number() %/% 10) %>%
   filter(section > 0) %>%
+  unnest_tokens(word, title) %>%
+  filter(!word %in% stop_words$word)
+
+word_cors <- corr_words %>%
+  group_by(word) %>%
+  filter(n() >= 50) %>%
+  pairwise_cor(word, section, sort = TRUE)
+
+word_cors
+
+#making an attempt
+data.sm=data[, c("title", "category_id")]
+corr_words= data.sm %>%
+  filter(category_id == 28) %>%
+  mutate(section = row_number()) %>%
+  #filter(section > 0) %>%
   unnest_tokens(word, title) %>%
   filter(!word %in% stop_words$word)
 

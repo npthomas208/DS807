@@ -1,0 +1,196 @@
+---
+title: "DS 807 Lab 1"
+author: "Nate Thomas"
+date: "Due: 3/23/2021 by 11:59 pm"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+
+library(tidyverse)
+library(tidytext)
+library(wordcloud)
+library(wordcloud2)
+library(textdata)
+library(igraph)
+library(ggraph)
+library(widyr)
+```
+
+## Lab Assignment Guidelines
+
+#### Purpose:
+  
+- Learning Outcomes measured in this assignment: LO1, LO2, and LO3 
+
+- Content knowledge you’ll gain from doing this assignment: Tokenization, word counts, visualization of frequent words, wordclouds, and sentiment analysis
+
+#### Criteria:
+
+- For this first lab, the grading criteria is 100% based on correctness of the code. 
+- If you want feedback for your interpretations/communication of your findings, I will gladly do so, without penalizing for any possible errors in your comments/findings. Simply include them for all or selected questions.
+
+
+#### Task
+
+1. Install the required libraries if you have not done so.
+
+2. For this lab, we will work with hotel review data for an eco-hotel (<https://www.areiasdoseixo.com/>). You can get full information form <https://archive.ics.uci.edu/ml/datasets/Eco-hotel#> The following chunk reads the data:
+
+```{r}
+hotel=read_csv("https://unh.box.com/shared/static/jhvj609uibhixieqoradol5x9bvvdb5r.csv")
+```
+
+3. Tokenize the data set by word and remove stop words.
+
+```{r}
+text_df=tibble(line=seq(1:nrow(hotel)), text=hotel$Review)
+text_df
+
+text_tidy=text_df %>%
+  unnest_tokens(word, text)
+
+text_tidy
+
+text_tidy %>%
+  count(word, sort=TRUE)
+```
+Removal of stop words
+```{r}
+text_tidy = text_tidy %>%
+  anti_join(stop_words)
+
+text_tidy %>%
+  count(word, sort=TRUE)
+
+```
+
+
+4. Add "Areais", "do". "seixo", and "sexios" in the stop words and remove these as well.
+
+```{r}
+custom_stop_words <- tribble(
+  # Column names should match stop_words
+  ~word, ~lexicon,
+  "Areais", "CUSTOM",
+  "do", "CUSTOM",
+  "seixo", "CUSTOM",
+  "sexio", "CUSTOM"
+)
+
+stop_words2 <- stop_words %>% 
+  bind_rows(custom_stop_words)
+
+text_tidy = text_tidy %>%
+  anti_join(stop_words2)
+
+text_tidy %>%
+  count(word, sort=TRUE)
+
+```
+
+
+5. Arrange the words in descending order by frequency and plot the 30 most frequent words.
+
+```{r}
+word_counts <- text_tidy %>% 
+  count(word) %>% 
+  top_n(30,n) %>%
+  mutate(word2 = fct_reorder(word, n))
+
+ggplot(word_counts, aes(x = word2, y = n)) +
+  geom_col(show.legend=FALSE) +
+  coord_flip() +
+  ggtitle("Title")
+```
+
+5. Plot a word cloud of these 30 words (choose wordcloud or wordcloud 2).
+
+```{r}
+w_count = text_tidy %>%
+  count(word)
+
+wordcloud(word= w_count$word,
+          freq=w_count$n,
+          color="red",
+          max.words=50)
+```
+
+6. Choose a sentiment library and perform a sentiment analysis, i.e., join the data with sentiments, count sentiments, plot sentiments.
+
+```{r}
+get_sentiments("loughran")
+
+sentiment_text = text_tidy %>%
+  inner_join(get_sentiments("loughran"))
+
+sentiment_text %>%
+  count(sentiment)
+
+plotdata = sentiment_text %>%
+  filter(sentiment %in% c("positive", "negative"))
+
+sent_count =  plotdata %>%
+  count(word, sentiment) %>%
+  group_by(sentiment) %>%
+  top_n(30, n) %>%
+  ungroup() %>%
+  mutate(word2=fct_reorder(word, n))
+
+ggplot(sent_count, aes(x=word, y=n, fill=sentiment)) +
+  geom_col(show.legend=FALSE)+
+  facet_wrap(~sentiment, scales="free")+
+  coord_flip()+
+  labs(title = "Sentiment Word Counts", x="Words")
+
+```
+
+7. Is there any other analysis you wish to perform based on the things we learned today? If so, please go ahead and do include it/them here.
+
+```{r}
+data2=hotel
+ngram_text = data2 %>%
+  unnest_tokens(bigram, Review, token="ngrams", n=2)
+
+ngram_text
+```
+
+```{r}
+filtered_text = ngram_text %>%
+  separate(bigram, c("word1", "word2"), sep=" ") %>%
+  filter(!word1 %in% stop_words2$word) %>%
+  filter(!word2 %in% stop_words2$word)
+
+filtered_text
+```
+
+```{r}
+bigram_count=filtered_text %>%
+  count(word1, word2, sort=TRUE)
+
+bigram_network = bigram_count %>%
+  filter( n > 7) %>%
+  graph_from_data_frame()
+
+bigram_network
+
+set.seed(1234)
+
+ggraph(bigram_network, layout = "fr") +
+  geom_edge_link() +
+  geom_node_point() +
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1)
+```
+
+
+
+
+
+
+
+
+
+
+
+

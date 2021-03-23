@@ -1,0 +1,122 @@
+---
+title: "DS 807 Assignment 1"
+author: "Anthony Morin, Nate Thomas"
+date: "Due: 3/29/2021 by 5:40 pm"
+output: html_document
+#runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+
+library(tidyverse)
+library(tidytext)
+library(wordcloud)
+library(wordcloud2)
+library(textdata)
+library(igraph)
+library(ggraph)
+library(widyr)
+```
+
+## Group Assignment Guidelines
+
+#### Purpose:
+  
+- Learning Outcomes measured in this assignment: LO1 to LO5
+
+- Content knowledge you’ll gain from doing this assignment: Tokenization, word counts, visualization of frequent words, wordclouds, sentiment analysis, and pairwise correlations.
+
+#### Criteria:
+
+- For this assingmet, you can work in groups of up to 3 people.
+
+- For the assignment 1, the grading criteria is 70% based on correctness of the code and 30% based on your communication of results.
+
+- Submission: You have two options. Please choose as you wish.
+
+    1. Upload the knitted document on Canvas.
+    2. Publish your final output in RPubs. <https://rpubs.com/about/getting-started>
+    
+
+
+#### Data Set
+
+For this assignment, we will be using a much simplified version of Movie Reviews data. The entire dataset is available here: <https://www.kaggle.com/c/sentiment-analysis-on-movie-reviews/overview>
+
+The following R chunk reads the data:
+
+```{r}
+movie=read_csv("https://unh.box.com/shared/static/3sd0exk43cz04mk9ftt3r4jomhaus6m0.csv")
+movie=distinct(movie, SentenceId, .keep_all=TRUE)
+
+```
+
+1. (10 points) Tokenize the data set by word and remove stop words. 
+
+```{r}
+text_df=tibble(line=seq(1:nrow(movie)), text=movie$Phrase)
+text_df
+
+text_tidy=text_df %>%
+  unnest_tokens(word, text)
+
+text_tidy
+
+text_tidy %>%
+  count(word, sort=TRUE)
+
+text_tidy = text_tidy %>%
+  anti_join(stop_words)
+```
+
+2. (15 points) Arrange the words in descending order by frequency. Based on the most frequent words, do you need to add more words to stop words? Why/Why not?
+
+```{r}
+text_tidy %>%
+  count(word, sort=TRUE)
+```
+
+LRB and RRB are special characters in Java - left and right round bracket.
+
+```{r}
+custom_stop_words <- tribble(
+  # Column names should match stop_words
+  ~word, ~lexicon,
+  "lrb", "CUSTOM",
+  "rrb", "CUSTOM"
+)
+
+stop_words2 <- stop_words %>% 
+  bind_rows(custom_stop_words)
+
+text_tidy = text_tidy %>%
+  anti_join(stop_words2)
+
+text_tidy %>%
+  count(word, sort=TRUE)
+```
+
+3. (15 points) *If necessary anti_join the new stop words.* Visualize the word counts. Did you need to filter by frequency, or look at some `top` words? Why/Why not? What does this plot tell you?
+
+
+
+4. (15 points) Plot a word cloud of these 30 words (choose wordcloud or wordcloud 2). Why did you choose this particular plot or any of the parameters? Looking at this plot, what information do you gain?
+
+```{r}
+
+```
+
+6. (20 points) Choose a sentiment library and perform a sentiment analysis, i.e., join the data with sentiments, count sentiments, and plot sentiments. What does your analysis tells you?
+
+```{r}
+
+```
+
+7. (15 points) Produce a bigram and calculate pairwise correlations. What does your analysis tells you?
+
+```{r}
+
+```
+
+8. (10 points) What is your learning outcome in this analysis? What would you like me to to notice in yoru analysis?
