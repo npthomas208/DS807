@@ -114,7 +114,7 @@ w_count = text_tidy %>%
 wordcloud(word= w_count$word,
           freq=w_count$n,
           color="red",
-          max.words=50)
+          max.words=30)
 ```
 
 6. Choose a sentiment library and perform a sentiment analysis, i.e., join the data with sentiments, count sentiments, plot sentiments.
